@@ -552,7 +552,8 @@ impl Game {
                                 k => { self.keypress(k); }
                             };
                         },
-                        GameUpdate::Tick => { self.advance_game(); }
+                        GameUpdate::Tick => { if !self.advance_game()
+                                                {std::process::exit(0);} }
                     };
                 },
                 Err(err) => panic!(err)
