@@ -1,6 +1,7 @@
 use util::Color;
 use std::io::{self, Write};
 
+
 const ESC: &'static str = "\x1b";
 
 #[derive(Debug)]
@@ -32,9 +33,17 @@ impl Display {
 
     pub fn render(&mut self) {
         self.clear_screen();
-        self.set_cursor_pos(0, 0);
-
         let mut writer = io::stdout();
+
+        let mut left = 0;
+
+        if let Some((w,_)) = term_size::dimensions()
+        {
+            left = ((0.5*w as f32) as u32) - ((self.buffer.len() as f32 * 0.5) as u32);
+        }
+
+        self.set_cursor_pos(left, 0);
+
         let mut fg_color = Color::Black;
         let mut bg_color = Color::Black;
 
@@ -55,7 +64,7 @@ impl Display {
                 assert!(writer.write_all(&bytes).is_ok());
             }
             y += 1;
-            self.set_cursor_pos(0, y);
+            self.set_cursor_pos(left, y);
         }
 
         assert!(writer.flush().is_ok());
