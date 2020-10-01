@@ -61,7 +61,7 @@ impl Display {
         assert!(writer.flush().is_ok());
     }
 
-    pub fn set_text(&mut self, text: &'static str, x: u32, y: u32, fg_color: Color, bg_color: Color) {
+    pub fn set_text(&mut self, text: &str, x: u32, y: u32, fg_color: Color, bg_color: Color) {
         let row = &mut self.buffer[y as usize];
         let mut i = 0;
 

@@ -310,6 +310,7 @@ struct Game {
     piece: Piece,
     hold: Option<Piece>,
     piece_position: Point,
+    score: i32
 }
 
 impl Game {
@@ -324,7 +325,8 @@ impl Game {
             piece_bag: piece_bag,
             piece: piece,
             hold: None,
-            piece_position: Point{ x: 0, y: 0 }
+            piece_position: Point{ x: 0, y: 0 }, 
+            score: 0
         };
 
         game.place_new_piece();
@@ -349,6 +351,9 @@ impl Game {
         // Render the level
         let left_margin = BOARD_WIDTH * 2 + 5;
         display.set_text("Level: 1", left_margin, 3, Color::Red, Color::Black);
+
+        //render score
+        display.set_text(&*format!("Score: {}", self.score), left_margin, 5, Color::Red, Color::Black);
 
         // Render a ghost piece
         let x = 1 + (2 * self.piece_position.x);
@@ -462,7 +467,14 @@ impl Game {
     fn advance_game(&mut self) -> bool {
         if !self.move_piece(0, 1) {
             self.board.lock_piece(&self.piece, self.piece_position);
-            self.board.clear_lines();
+            match self.board.clear_lines()
+            {
+                1 => self.score += 100,
+                2 => self.score += 300,
+                3 => self.score += 500,
+                4 => self.score += 800,
+                _ => () 
+            }
             self.piece = self.piece_bag.pop();
 
             if !self.place_new_piece() {
@@ -561,7 +573,7 @@ fn get_input(stdin: &mut std::io::Stdin) -> Option<Key> {
                 Ok("s") => Some(Key::Down),
                 Ok("d") => Some(Key::Right),
                 Ok(" ") => Some(Key::Space),
-                Ok("h") => Some(Key::Hold),
+                Ok("c") => Some(Key::Hold),
                 Ok("\x03") => Some(Key::CtrlC),
                 // Escape sequence started - must read two more bytes.
                 Ok("\x1b") => {
