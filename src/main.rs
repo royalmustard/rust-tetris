@@ -134,7 +134,7 @@ impl Clone for Piece {
 impl Piece {
     pub fn new_o() -> Piece {
         Piece{
-            color: Color::Cyan,
+            color: Color::Yellow,
             shape: vec![vec![1, 1],
                         vec![1, 1]]
         }
@@ -241,6 +241,7 @@ impl Piece {
             Color::Red => Color::DarkRed,
             Color::Blue => Color::DarkBlue,
             Color::Orange => Color::DarkOrange,
+            Color::Yellow => Color::DarkYellow,
             _ => Color::Black
         }
     }

@@ -39,6 +39,7 @@ impl Display {
 
         if let Some((w,_)) = term_size::dimensions()
         {
+            //println!("{} {}", self.buffer.len(), self.buffer.len());
             left = ((0.5*w as f32) as u32) - ((self.buffer.len() as f32 * 0.5) as u32);
         }
 
