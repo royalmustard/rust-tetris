@@ -576,7 +576,7 @@ fn get_input(stdin: &mut std::io::Stdin) -> Option<Key> {
                 Ok("d") => Some(Key::Right),
                 Ok(" ") => Some(Key::Space),
                 Ok("c") => Some(Key::Hold),
-                Ok("\x03") => Some(Key::CtrlC),
+                Ok("z") => Some(Key::CtrlC),
                 // Escape sequence started - must read two more bytes.
                 Ok("\x1b") => {
                     let code = &mut [0u8; 2];
