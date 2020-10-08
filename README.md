@@ -1,3 +1,6 @@
+# Disclaimer
+This war originally taken mikejquinn's repository, but due to some unfortunate git accidents the fork is no longer in sync.
+
 # Rust Tetris
 
 This is a simple console-based version of the game Tetris, written in Rust.
@@ -14,6 +17,7 @@ Movement keys:
 * E - Rotate clockwise
 * A / S / D (or arrow keys) - move left, right, down
 * Space - Drop piece to bottom of board
+* C - Hold current piece
 
 You've played Tetris before. Colored shapes (called "tetrominos") drop one at a time from the top of the game
 board. The object of the game is to guide these pieces to the bottom of the board and position them such that
@@ -44,7 +48,5 @@ events, one sending tick events). This would obviate the need for the `GameUpdat
 ## Next steps
 
 There are still a few very small pieces I need to build before this is a feature-complete Tetris:
-* Scoring
 * Game levels with increasing difficulty
 * [Wall-kick](http://tetris.wikia.com/wiki/Wall_kick)
-* Game over
