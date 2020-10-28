@@ -1,5 +1,7 @@
-use util::Color;
+
+use crate::util::Color;
 use std::io::{self, Write};
+use std::cell::RefCell;
 
 
 const ESC: &'static str = "\x1b";
@@ -13,10 +15,11 @@ struct Pixel {
 
 pub struct Display {
     buffer: Vec<Vec<Pixel>>,
+    writer: RefCell<Box<dyn Write>>
 }
 
 impl Display {
-    pub fn new(width: u32, height: u32) -> Display {
+    pub fn new(width: u32, height: u32, writer: RefCell<Box<dyn Write>>) -> Display {
         let mut rows = Vec::with_capacity(height as usize);
         for _ in 0..height {
             let mut row = Vec::with_capacity(width as usize);
@@ -27,13 +30,13 @@ impl Display {
         }
 
         Display {
-            buffer: rows
+            buffer: rows, 
+            writer
         }
     }
 
     pub fn render(&mut self) {
         self.clear_screen();
-        let mut writer = io::stdout();
 
         let mut left = 0;
 
@@ -62,13 +65,13 @@ impl Display {
                  }
 
                 let bytes = [pixel.c as u8];
-                assert!(writer.write_all(&bytes).is_ok());
+                assert!(self.writer.borrow_mut().write_all(&bytes).is_ok());
             }
             y += 1;
             self.set_cursor_pos(left, y);
         }
 
-        assert!(writer.flush().is_ok());
+        assert!(self.writer.borrow_mut().flush().is_ok());
     }
 
     pub fn set_text(&mut self, text: &str, x: u32, y: u32, fg_color: Color, bg_color: Color) {
@@ -85,9 +88,8 @@ impl Display {
     }
 
     pub fn clear_screen(&self) {
-        let mut writer = io::stdout();
-        assert!(writer.write_all(self.esc("2J").as_bytes()).is_ok());
-        assert!(writer.flush().is_ok());
+        assert!(self.writer.borrow_mut().write_all(self.esc("2J").as_bytes()).is_ok());
+        assert!(self.writer.borrow_mut().flush().is_ok());
     }
 
     pub fn clear_buffer(&mut self) {
@@ -108,8 +110,7 @@ impl Display {
     fn esc(&self, text: &str) -> String { format!("{}[{}", ESC, text) }
 
     fn print(&self, text: &str) {
-        let mut writer = io::stdout();
-        assert!(writer.write_all(text.as_bytes()).is_ok());
+        assert!(self.writer.borrow_mut().write_all(text.as_bytes()).is_ok());
     }
 
     fn set_fg_color(&self, color: Color) {

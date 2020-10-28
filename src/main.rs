@@ -1,15 +1,16 @@
-extern crate libc;
 extern crate rand;
 
 mod util;
 mod display;
-mod terminal;
 
+use std::io::{self, Write};
+use std::cell::RefCell;
 use display::Display;
 use std::thread;
 use std::sync::mpsc;
 use std::time::Duration;
 use util::*;
+use termion::raw::IntoRawMode;
 
 const BOARD_WIDTH: u32 = 10;
 const BOARD_HEIGHT: u32 = 20;
@@ -602,10 +603,21 @@ fn get_input(stdin: &mut std::io::Stdin) -> Option<Key> {
 }
 
 fn main() {
-    let display = &mut Display::new(BOARD_WIDTH * 2 + 100, BOARD_HEIGHT + 2);
-    let game = &mut Game::new();
+    let (send, recv) = std::sync::mpsc::channel();
+    
+    std::thread::spawn(move || {
+        let display = &mut Display::new(BOARD_WIDTH * 2 + 100, BOARD_HEIGHT + 2, 
+            RefCell::new(Box::new(std::io::stdout().into_raw_mode().unwrap())));
+        let game = &mut Game::new();
+        //let _restorer = terminal::set_terminal_raw_mode();
+        game.play(display);
+        //let mut writer = std::io::stdout();
+        //writer.flush().unwrap();
+        send.send(game.score).unwrap();
+    });
+    
+    let score = recv.recv().unwrap();
+    println!("{}", score);
 
-    let _restorer = terminal::set_terminal_raw_mode();
-
-    game.play(display);
+   
 }

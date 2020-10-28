@@ -1,10 +1,15 @@
 [package]
 name = "tetris"
 version = "0.0.1"
-authors = ["Michael Quinn <mikejquinn@gmail.com>"]
+authors = ["Michael Quinn <mikejquinn@gmail.com>", "royalmustard <royalmustard@memium.de>"]
+edition="2018"
+
 
 [dependencies]
-libc = "0.2.79"
 rand = "0.7.3"
 term_size = "0.3.2"
+termion = "1.5.5"
 
+
+[profile.release]
+lto=true
