@@ -1,6 +1,6 @@
 
 use crate::util::Color;
-use std::io::{self, Write};
+use std::io::Write;
 use std::cell::RefCell;
 
 

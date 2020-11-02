@@ -2,8 +2,9 @@ extern crate rand;
 
 mod util;
 mod display;
+mod scores;
 
-use std::io::{self, Write};
+use std::io::stdout;
 use std::cell::RefCell;
 use display::Display;
 use std::thread;
@@ -11,6 +12,7 @@ use std::sync::mpsc;
 use std::time::Duration;
 use util::*;
 use termion::raw::IntoRawMode;
+use termion::screen::AlternateScreen;
 
 const BOARD_WIDTH: u32 = 10;
 const BOARD_HEIGHT: u32 = 20;
@@ -312,7 +314,7 @@ struct Game {
     piece: Piece,
     hold: Option<Piece>,
     piece_position: Point,
-    score: i32
+    score: u32
 }
 
 impl Game {
@@ -518,7 +520,9 @@ impl Game {
             thread::spawn(move || {
                 loop {
                     thread::sleep(Duration::from_millis(500));
-                    tx_event.send(GameUpdate::Tick).unwrap();
+                    if let Ok(_) = tx_event.send(GameUpdate::Tick)
+                    {}
+                    else {break}
                 };
             });
         }
@@ -530,10 +534,11 @@ impl Game {
                 let stdin = &mut std::io::stdin();
 
                 loop {
-                    match get_input(stdin) {
-                        Some(k) => tx_event.send(GameUpdate::KeyPress(k)).unwrap(),
-                        None => ()
-                    }
+                    if let Ok(_) = match get_input(stdin) {
+                        Some(k) => tx_event.send(GameUpdate::KeyPress(k)),
+                        None => Ok(())
+                    }{}
+                    else{break}
                 }
             });
         }
@@ -555,7 +560,7 @@ impl Game {
                             };
                         },
                         GameUpdate::Tick => { if !self.advance_game()
-                                                {std::process::exit(0);} }
+                                                {break} }
                     };
                 },
                 Err(err) => panic!(err)
@@ -607,7 +612,7 @@ fn main() {
     
     std::thread::spawn(move || {
         let display = &mut Display::new(BOARD_WIDTH * 2 + 100, BOARD_HEIGHT + 2, 
-            RefCell::new(Box::new(std::io::stdout().into_raw_mode().unwrap())));
+            RefCell::new(Box::new(AlternateScreen::from(stdout().into_raw_mode().unwrap()))));
         let game = &mut Game::new();
         //let _restorer = terminal::set_terminal_raw_mode();
         game.play(display);
@@ -615,9 +620,9 @@ fn main() {
         //writer.flush().unwrap();
         send.send(game.score).unwrap();
     });
-    
-    let score = recv.recv().unwrap();
-    println!("{}", score);
 
-   
+    if let Ok(score) = recv.recv()
+    {
+        scores::manage_highscore(score);
+    }
 }
