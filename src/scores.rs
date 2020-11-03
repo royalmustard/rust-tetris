@@ -1,7 +1,7 @@
 use serde::{Serialize, Deserialize};
-use std::path::{Path, PathBuf};
-use std::fs::{File, OpenOptions};
-use std::io::{Read, Write};
+use std::path::{Path};
+use std::fs::{OpenOptions};
+use std::io::{Write};
 use dirs::home_dir;
 
 
@@ -51,7 +51,6 @@ fn ask_username() -> String
     let mut buffer = String::new();
     std::io::stdin().read_line(&mut buffer).unwrap();
     buffer = buffer.trim().into();
-    println!("{}", buffer);
     return buffer;
 }
 

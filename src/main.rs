@@ -513,7 +513,6 @@ impl Game {
 
     fn play(&mut self, display: &mut Display) {
         let (tx_event, rx_event) = mpsc::channel();
-
         // Spawn a thread which sends periodic game ticks to advance the piece
         {
             let tx_event = tx_event.clone();
@@ -528,12 +527,13 @@ impl Game {
         }
 
         // Spawn a thread which listens for keyboard input
-        {
             let tx_event = tx_event.clone();
-            thread::spawn(move || {
+            let (flag, control) = thread_control::make_pair();
+
+         let input_handle = thread::spawn(move || {
                 let stdin = &mut std::io::stdin();
 
-                loop {
+                while flag.alive() {
                     if let Ok(_) = match get_input(stdin) {
                         Some(k) => tx_event.send(GameUpdate::KeyPress(k)),
                         None => Ok(())
@@ -541,7 +541,6 @@ impl Game {
                     else{break}
                 }
             });
-        }
 
         // Main game loop. The loop listens and responds to timer and keyboard updates received on a channel
         // as sent by the threads spawned above.
@@ -566,6 +565,8 @@ impl Game {
                 Err(err) => panic!(err)
             }
         }
+        control.stop();
+        input_handle.join().unwrap(); //to prevent input thread from eating input
     }
 }
 
@@ -614,10 +615,7 @@ fn main() {
         let display = &mut Display::new(BOARD_WIDTH * 2 + 100, BOARD_HEIGHT + 2, 
             RefCell::new(Box::new(AlternateScreen::from(stdout().into_raw_mode().unwrap()))));
         let game = &mut Game::new();
-        //let _restorer = terminal::set_terminal_raw_mode();
         game.play(display);
-        //let mut writer = std::io::stdout();
-        //writer.flush().unwrap();
         send.send(game.score).unwrap();
     });
 
