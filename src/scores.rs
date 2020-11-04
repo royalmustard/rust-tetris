@@ -2,14 +2,28 @@ use serde::{Serialize, Deserialize};
 use std::path::{Path};
 use std::fs::{OpenOptions};
 use std::io::{Write};
+use std::cmp::{Ord, Ordering};
 use dirs::home_dir;
 
 
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, PartialEq, Eq)]
 struct Score
 {
-    name: String,
-    score: u32
+    pub name: String,
+    pub score: u32
+}
+
+impl Ord for Score
+{
+    fn cmp(&self, other: &Self) -> Ordering {
+        self.score.cmp(&other.score)
+    }
+}
+
+impl PartialOrd for Score {
+    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
+        self.score.partial_cmp(&other.score)
+    }
 }
 
 fn load_scores(path: &Path) -> Vec<Score>
@@ -64,13 +78,24 @@ pub fn manage_highscore(pscore: u32)
         println!("Your score: {}", pscore);
         let name = ask_username();
         scores.push(Score{name: name, score: pscore});
+        scores.sort();
+        scores.reverse();
+        print!("{}",termion::clear::BeforeCursor);
+        println!("Highscores:");
+        scores.iter().for_each(|score|
+            println!("{0}: {1}", score.name, score.score));
         write_scores(path.as_path(), scores);
-        print_highscores(path.as_path());
     }
+    
     
 }
 
-pub fn print_highscores(path: &Path)
+pub fn print_highscores()
 {
-
+    let mut path = home_dir().unwrap();
+    path.push(".tetris");
+    let scores = load_scores(path.as_path());
+    print!("{}",termion::clear::BeforeCursor);
+    scores.iter().for_each(|score|
+        println!("{0}: {1}", score.name, score.score));
 }

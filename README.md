@@ -7,9 +7,9 @@ This is a simple console-based version of the game Tetris, written in Rust.
 
 ## How to play
 
-    git clone https://github.com/mikejquinn/rust-tetris.git
+    git clone https://github.com/royalmustard/rust-tetris.git
     cd rust-tetris
-    cargo run
+    cargo run --release
 
 Movement keys:
 

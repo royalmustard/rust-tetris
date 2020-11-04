@@ -13,6 +13,7 @@ use std::time::Duration;
 use util::*;
 use termion::raw::IntoRawMode;
 use termion::screen::AlternateScreen;
+use clap::clap_app;
 
 const BOARD_WIDTH: u32 = 10;
 const BOARD_HEIGHT: u32 = 20;
@@ -609,6 +610,20 @@ fn get_input(stdin: &mut std::io::Stdin) -> Option<Key> {
 }
 
 fn main() {
+    let matches = clap_app!(myapp =>
+        (version: "1.0")
+        (author: "royalmustard <royalmustard@memium.de")
+        (about: "Tetris")
+        (@arg SCORES: -s --scores "Print highscores")
+    ).get_matches();
+
+    if matches.is_present("SCORES")
+    {
+        scores::print_highscores();
+        return;
+    }
+
+
     let (send, recv) = std::sync::mpsc::channel();
     
     std::thread::spawn(move || {
