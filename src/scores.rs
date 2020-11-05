@@ -80,6 +80,7 @@ pub fn manage_highscore(pscore: u32)
         scores.push(Score{name: name, score: pscore});
         scores.sort();
         scores.reverse();
+        scores.truncate(10);
         print!("{}",termion::clear::BeforeCursor);
         println!("Highscores:");
         scores.iter().for_each(|score|

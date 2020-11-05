@@ -315,7 +315,8 @@ struct Game {
     piece: Piece,
     hold: Option<Piece>,
     piece_position: Point,
-    score: u32
+    score: u32,
+    switched: bool
 }
 
 impl Game {
@@ -331,7 +332,8 @@ impl Game {
             piece: piece,
             hold: None,
             piece_position: Point{ x: 0, y: 0 }, 
-            score: 0
+            score: 0,
+            switched: false
         };
 
         game.place_new_piece();
@@ -436,19 +438,24 @@ impl Game {
     /// Places a new piece when hold was empty previously
     fn switch_hold(&mut self) -> bool
     {
+        if self.switched
+        {
+            return false;   
+        }
         if let Some(p) = &self.hold
         {
            let tmp = p.clone();
            self.hold = Some(self.piece.clone());
            self.piece = tmp;
-           return true;
         }
         else
         {
             self.hold = Some(self.piece.clone());
             self.piece = self.piece_bag.pop();
-            return self.place_new_piece();
+            
         }
+        self.switched = true;
+        return self.place_new_piece();
     }
 
     /// Positions the current piece at the top of the board. Returns true if the piece can be placed without
@@ -481,7 +488,7 @@ impl Game {
                 _ => () 
             }
             self.piece = self.piece_bag.pop();
-
+            self.switched = false;
             if !self.place_new_piece() {
                 return false;
             }
@@ -610,10 +617,10 @@ fn get_input(stdin: &mut std::io::Stdin) -> Option<Key> {
 }
 
 fn main() {
-    let matches = clap_app!(myapp =>
+    let matches = clap_app!(Tetris =>
         (version: "1.0")
-        (author: "royalmustard <royalmustard@memium.de")
-        (about: "Tetris")
+        (author: "royalmustard <royalmustard@memium.de>")
+        (about: "Tetris (but its big stonks)")
         (@arg SCORES: -s --scores "Print highscores")
     ).get_matches();
 
