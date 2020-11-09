@@ -81,14 +81,9 @@ pub fn manage_highscore(pscore: u32)
         scores.sort();
         scores.reverse();
         scores.truncate(10);
-        print!("{}",termion::clear::BeforeCursor);
-        println!("Highscores:");
-        scores.iter().for_each(|score|
-            println!("{0}: {1}", score.name, score.score));
         write_scores(path.as_path(), scores);
     }
-    
-    
+    print_highscores();
 }
 
 pub fn print_highscores()

@@ -633,7 +633,7 @@ fn main() {
 
     let (send, recv) = std::sync::mpsc::channel();
     
-    std::thread::spawn(move || {
+    let handle = std::thread::spawn(move || {
         let display = &mut Display::new(BOARD_WIDTH * 2 + 100, BOARD_HEIGHT + 2, 
             RefCell::new(Box::new(AlternateScreen::from(stdout().into_raw_mode().unwrap()))));
         let game = &mut Game::new();
@@ -643,6 +643,7 @@ fn main() {
 
     if let Ok(score) = recv.recv()
     {
+        handle.join().unwrap();
         scores::manage_highscore(score);
     }
 }
