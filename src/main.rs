@@ -3,7 +3,10 @@ extern crate rand;
 mod util;
 mod display;
 mod scores;
+mod piece;
 
+
+use piece::*;
 use std::io::stdout;
 use std::cell::RefCell;
 use display::Display;
@@ -14,6 +17,8 @@ use util::*;
 use termion::raw::IntoRawMode;
 use termion::screen::AlternateScreen;
 use clap::clap_app;
+use std::sync::Arc;
+use std::sync::atomic::{AtomicU64, Ordering};
 
 const BOARD_WIDTH: u32 = 10;
 const BOARD_HEIGHT: u32 = 20;
@@ -117,197 +122,9 @@ impl Board {
     }
 }
 
-struct Piece {
-    color: Color,
-    shape: Vec<Vec<u8>>,
-}
 
-impl Clone for Piece {
-    fn clone(&self) -> Piece {
-        let mut p = Piece{
-            color: self.color,
-            shape: Vec::with_capacity(self.shape.len())
-        };
-        for row in &self.shape {
-            p.shape.push(row.clone());
-        }
-        p
-    }
-}
 
-impl Piece {
-    pub fn new_o() -> Piece {
-        Piece{
-            color: Color::Yellow,
-            shape: vec![vec![1, 1],
-                        vec![1, 1]]
-        }
-    }
 
-    pub fn new_l() -> Piece {
-        Piece{
-            color: Color::Orange,
-            shape: vec![vec![0, 0, 1],
-                        vec![1, 1, 1],
-                        vec![0, 0, 0]]
-        }
-    }
-
-    pub fn new_j() -> Piece {
-        Piece{
-            color: Color::Blue,
-            shape: vec![vec![1, 0, 0],
-                        vec![1, 1, 1],
-                        vec![0, 0, 0]]
-        }
-    }
-
-    pub fn new_t() -> Piece {
-        Piece{
-            color: Color::Purple,
-            shape: vec![vec![0, 1, 0],
-                        vec![1, 1, 1],
-                        vec![0, 0, 0]]
-        }
-    }
-
-    pub fn new_s() -> Piece {
-        Piece{
-            color: Color::Green,
-            shape: vec![vec![0, 1, 1],
-                        vec![1, 1, 0],
-                        vec![0, 0, 0]]
-        }
-    }
-
-    pub fn new_z() -> Piece {
-        Piece{
-            color: Color::Red,
-            shape: vec![vec![1, 1, 0],
-                        vec![0, 1, 1],
-                        vec![0, 0, 0]]
-        }
-    }
-
-    pub fn new_i() -> Piece {
-        Piece{
-            color: Color::Cyan,
-            shape: vec![vec![0, 0, 0, 0],
-                        vec![1, 1, 1, 1],
-                        vec![0, 0, 0, 0],
-                        vec![0, 0, 0, 0]]
-        }
-    }
-
-    fn rotate(&mut self, direction: Direction) {
-        let size = self.shape.len();
-
-        for row in 0..size/2 {
-            for col in row..(size - row - 1) {
-                let t = self.shape[row][col];
-
-                match direction {
-                    Direction::Left => {
-                        self.shape[row][col] = self.shape[col][size - row - 1];
-                        self.shape[col][size - row - 1] = self.shape[size - row - 1][size - col - 1];
-                        self.shape[size - row - 1][size - col - 1] = self.shape[size - col - 1][row];
-                        self.shape[size - col - 1][row] = t;
-                    },
-                    Direction::Right => {
-                        self.shape[row][col] = self.shape[size - col - 1][row];
-                        self.shape[size - col - 1][row] = self.shape[size - row - 1][size - col - 1];
-                        self.shape[size - row - 1][size - col - 1] = self.shape[col][size - row - 1];
-                        self.shape[col][size - row - 1] = t;
-                    }
-                }
-            }
-        }
-    }
-
-    fn each_point(&self, callback: &mut dyn FnMut(i32, i32)) {
-        let piece_width = self.shape.len() as i32;
-        for row in 0..piece_width {
-            for col in 0..piece_width {
-                if self.shape[row as usize][col as usize] != 0 {
-                    callback(row, col);
-                }
-            }
-        }
-    }
-
-    fn get_shadow_color(&self) -> Color
-    {   
-        match self.color
-        {
-            Color::Cyan => Color::DarkCyan,
-            Color::Purple => Color::DarkPurple,
-            Color::Green => Color::DarkGreen,
-            Color::Red => Color::DarkRed,
-            Color::Blue => Color::DarkBlue,
-            Color::Orange => Color::DarkOrange,
-            Color::Yellow => Color::DarkYellow,
-            _ => Color::Black
-        }
-    }
-}
-
-/// Implements a queue of randomized tetrominoes.
-///
-/// Instead of a purely random stream of tetromino types, this queue generates a random ordering of all
-/// possible types and ensures all of those pieces are used before re-generating a new random set. This helps
-/// avoid pathological cases where purely random generation provides the same piece type repeately in a row,
-/// or fails to provide a required piece for a very long time.
-struct PieceBag {
-    pieces: Vec<Piece>
-}
-
-impl PieceBag {
-    fn new() -> PieceBag {
-        let mut p = PieceBag{
-            pieces: Vec::new()
-        };
-        p.fill_bag();
-        p
-    }
-
-    /// Removes and returns the next piece in the queue.
-    fn pop(&mut self) -> Piece {
-        let piece = self.pieces.remove(0);
-        if self.pieces.is_empty() {
-            self.fill_bag();
-        }
-        piece
-    }
-
-    /// Returns a copy of the next piece in the queue.
-    fn peek(&self) -> Piece {
-        match self.pieces.first() {
-            Some(p) => p.clone(),
-            None => panic!("No next piece in piece bag")
-        }
-    }
-
-    /// Generates a random ordering of all possible pieces and adds them to the piece queue.
-    fn fill_bag(&mut self) {
-        use rand::Rng;
-
-        let mut pieces: Vec<Piece> = vec![
-            Piece::new_o(),
-            Piece::new_l(),
-            Piece::new_j(),
-            Piece::new_t(),
-            Piece::new_s(),
-            Piece::new_z(),
-            Piece::new_i()
-        ];
-
-        let mut rng = rand::thread_rng();
-        while !pieces.is_empty() {
-            let i = rng.gen::<usize>() % pieces.len();
-            self.pieces.push(pieces.swap_remove(i));
-        }
-    }
-}
 
 struct Game {
     board: Board,
@@ -316,7 +133,10 @@ struct Game {
     hold: Option<Piece>,
     piece_position: Point,
     score: u32,
-    switched: bool
+    switched: bool,
+    level: u32,
+    speed: Arc<AtomicU64>,
+    to_clear: i32
 }
 
 impl Game {
@@ -333,7 +153,10 @@ impl Game {
             hold: None,
             piece_position: Point{ x: 0, y: 0 }, 
             score: 0,
-            switched: false
+            switched: false,
+            level: 1,
+            speed: Arc::new(AtomicU64::new(500)),
+            to_clear: 10
         };
 
         game.place_new_piece();
@@ -357,10 +180,10 @@ impl Game {
 
         // Render the level
         let left_margin = BOARD_WIDTH * 2 + 5;
-        display.set_text("Level: 1", left_margin, 3, Color::Red, Color::Black);
+        display.set_text(format!("Level: {}", self.level), left_margin, 3, Color::Red, Color::Black);
 
         //render score
-        display.set_text(&*format!("Score: {}", self.score), left_margin, 5, Color::Red, Color::Black);
+        display.set_text(format!("Score: {}", self.score), left_margin, 5, Color::Red, Color::Black);
 
         // Render a ghost piece
         let x = 1 + (2 * self.piece_position.x);
@@ -479,13 +302,23 @@ impl Game {
     fn advance_game(&mut self) -> bool {
         if !self.move_piece(0, 1) {
             self.board.lock_piece(&self.piece, self.piece_position);
-            match self.board.clear_lines()
+            let cleared = self.board.clear_lines();
+            match cleared
             {
-                1 => self.score += 100,
-                2 => self.score += 300,
-                3 => self.score += 500,
-                4 => self.score += 800,
+                1 => self.score += 100*self.level,
+                2 => self.score += 300*self.level,
+                3 => self.score += 500*self.level,
+                4 => self.score += 800*self.level,
                 _ => () 
+            }
+            self.to_clear -= cleared as i32;
+            if self.to_clear <= 0
+            {
+                self.level += 1;
+                self.to_clear = self.level as i32 * 10;
+                let new_speed = num::clamp(500 - (self.level*20), 20, 500);
+
+                self.speed.store(new_speed as u64, Ordering::SeqCst);
             }
             self.piece = self.piece_bag.pop();
             self.switched = false;
@@ -524,9 +357,11 @@ impl Game {
         // Spawn a thread which sends periodic game ticks to advance the piece
         {
             let tx_event = tx_event.clone();
+            let arc = self.speed.clone();
             thread::spawn(move || {
                 loop {
-                    thread::sleep(Duration::from_millis(500));
+                    let dur = Duration::from_millis(arc.load(Ordering::SeqCst));
+                    thread::sleep(dur);
                     if let Ok(_) = tx_event.send(GameUpdate::Tick)
                     {}
                     else {break}

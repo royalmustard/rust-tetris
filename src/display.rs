@@ -74,11 +74,11 @@ impl Display {
         assert!(self.writer.borrow_mut().flush().is_ok());
     }
 
-    pub fn set_text(&mut self, text: &str, x: u32, y: u32, fg_color: Color, bg_color: Color) {
+    pub fn set_text<S: AsRef<str>>(&mut self, text: S, x: u32, y: u32, fg_color: Color, bg_color: Color) {
         let row = &mut self.buffer[y as usize];
         let mut i = 0;
 
-        for c in text.chars() {
+        for c in text.as_ref().chars() {
             let cell = &mut row[(x + i) as usize];
             cell.c = c;
             cell.fg_color = fg_color;
