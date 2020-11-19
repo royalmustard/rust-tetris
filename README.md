@@ -18,6 +18,7 @@ Movement keys:
 * A / S / D (or arrow keys) - move left, right, down
 * Space - Drop piece to bottom of board
 * C - Hold current piece
+* P - Pause/Unpause the game
 
 You've played Tetris before. Colored shapes (called "tetrominos") drop one at a time from the top of the game
 board. The object of the game is to guide these pieces to the bottom of the board and position them such that

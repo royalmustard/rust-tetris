@@ -18,7 +18,7 @@ use termion::raw::IntoRawMode;
 use termion::screen::AlternateScreen;
 use clap::clap_app;
 use std::sync::Arc;
-use std::sync::atomic::{AtomicU64, Ordering};
+use std::sync::atomic::{AtomicU64, AtomicBool, Ordering};
 
 const BOARD_WIDTH: u32 = 10;
 const BOARD_HEIGHT: u32 = 20;
@@ -32,6 +32,7 @@ enum Key {
     Space,
     CtrlC,
     Hold,
+    Pause,
     Char(char),
 }
 
@@ -136,7 +137,8 @@ struct Game {
     switched: bool,
     level: u32,
     speed: Arc<AtomicU64>,
-    to_clear: i32
+    to_clear: i32,
+    paused: Arc<AtomicBool>
 }
 
 impl Game {
@@ -156,7 +158,8 @@ impl Game {
             switched: false,
             level: 1,
             speed: Arc::new(AtomicU64::new(500)),
-            to_clear: 10
+            to_clear: 10,
+            paused: Arc::new(AtomicBool::new(false)),
         };
 
         game.place_new_piece();
@@ -281,6 +284,14 @@ impl Game {
         return self.place_new_piece();
     }
 
+    ///Pauses or unpauses the game
+    fn pause(&self) -> bool
+    {
+        let p = self.paused.load(Ordering::SeqCst);
+        self.paused.store(!p, Ordering::SeqCst);
+        true
+    }
+
     /// Positions the current piece at the top of the board. Returns true if the piece can be placed without
     /// any collisions.
     fn place_new_piece(&mut self) -> bool {
@@ -345,6 +356,7 @@ impl Game {
             Key::Up => self.rotate_piece(Direction::Left),
             Key::Space => self.drop_piece(),
             Key::Hold => self.switch_hold(),
+            Key::Pause => self.pause(),
             Key::Char('q') => self.rotate_piece(Direction::Left),
             Key::Char('e') => self.rotate_piece(Direction::Right),
             _ => false,
@@ -358,13 +370,17 @@ impl Game {
         {
             let tx_event = tx_event.clone();
             let arc = self.speed.clone();
+            let p = self.paused.clone();
             thread::spawn(move || {
                 loop {
                     let dur = Duration::from_millis(arc.load(Ordering::SeqCst));
                     thread::sleep(dur);
-                    if let Ok(_) = tx_event.send(GameUpdate::Tick)
-                    {}
-                    else {break}
+                    if !p.load(Ordering::SeqCst)
+                    {
+                        if let Ok(_) = tx_event.send(GameUpdate::Tick)
+                        {}
+                        else {break}
+                    }
                 };
             });
         }
@@ -427,6 +443,7 @@ fn get_input(stdin: &mut std::io::Stdin) -> Option<Key> {
                 Ok(" ") => Some(Key::Space),
                 Ok("c") => Some(Key::Hold),
                 Ok("z") => Some(Key::CtrlC),
+                Ok("p") => Some(Key::Pause),
                 // Escape sequence started - must read two more bytes.
                 Ok("\x1b") => {
                     let code = &mut [0u8; 2];
