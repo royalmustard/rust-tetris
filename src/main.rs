@@ -349,6 +349,14 @@ impl Game {
     }
 
     fn keypress(&mut self, key: Key) {
+        if self.paused.load(Ordering::SeqCst)
+        {
+            match key {
+                Key::Pause => self.pause(),
+                _ => false,
+            };
+            return
+        }
         match key {
             Key::Left => self.move_piece(-1, 0),
             Key::Right => self.move_piece(1, 0),
