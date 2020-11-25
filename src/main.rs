@@ -327,7 +327,7 @@ impl Game {
             {
                 self.level += 1;
                 self.to_clear = self.level as i32 * 10;
-                let new_speed = num::clamp(500 - (self.level*20), 20, 500);
+                let new_speed = 500 - (self.level-1)*10;
 
                 self.speed.store(new_speed as u64, Ordering::SeqCst);
             }
