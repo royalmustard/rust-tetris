@@ -46,8 +46,3 @@ A simpler design for handling game input and the drop timer may have been to use
 events, one sending tick events). This would obviate the need for the `GameUpdate` type. Unfortunately, using
 `select!` on channels is not supported in Rust's stable compiler.
 
-## Next steps
-
-There are still a few very small pieces I need to build before this is a feature-complete Tetris:
-* Game levels with increasing difficulty
-* [Wall-kick](http://tetris.wikia.com/wiki/Wall_kick)
