@@ -251,9 +251,38 @@ impl Game {
         let mut new_piece = self.piece.clone();
         new_piece.rotate(direction);
 
-        if self.board.collision_test(&new_piece, self.piece_position) {
-            false
-        } else {
+        if self.board.collision_test(&new_piece, self.piece_position) 
+        {   
+            let mut new_position = self.piece_position.clone();
+            if self.piece_position.x < (BOARD_WIDTH/2) as i32 //wallkick left
+            {
+                
+                new_position.x += 1;
+            }
+            else
+            {
+                new_position.x -= 1;
+            }
+            if self.board.collision_test(&new_piece, new_position)
+            {
+                if self.piece_position.x > (BOARD_WIDTH/2) as i32 //wallkick right
+                {
+                    new_position.x -=1;
+                    if self.board.collision_test(&new_piece, new_position)
+                    {
+                        return false;
+                    }
+                }
+                
+            }
+            
+            self.piece = new_piece;
+            self.piece_position = new_position;
+            return true
+            
+        }
+        else 
+        {
             self.piece = new_piece;
             true
         }
