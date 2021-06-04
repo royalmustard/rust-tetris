@@ -1,8 +1,6 @@
-
 use crate::util::Color;
-use std::io::Write;
 use std::cell::RefCell;
-
+use std::io::Write;
 
 const ESC: &'static str = "\x1b";
 
@@ -15,7 +13,7 @@ struct Pixel {
 
 pub struct Display {
     buffer: Vec<Vec<Pixel>>,
-    writer: RefCell<Box<dyn Write>>
+    writer: RefCell<Box<dyn Write>>,
 }
 
 impl Display {
@@ -24,14 +22,18 @@ impl Display {
         for _ in 0..height {
             let mut row = Vec::with_capacity(width as usize);
             for _ in 0..width {
-                row.push(Pixel{ c: ' ', fg_color: Color::Black, bg_color: Color::Black });
+                row.push(Pixel {
+                    c: ' ',
+                    fg_color: Color::Black,
+                    bg_color: Color::Black,
+                });
             }
             rows.push(row);
         }
 
         Display {
-            buffer: rows, 
-            writer
+            buffer: rows,
+            writer,
         }
     }
 
@@ -40,10 +42,9 @@ impl Display {
 
         let mut left = 0;
 
-        if let Ok((w,_)) = termion::terminal_size()
-        {
+        if let Ok((w, _)) = termion::terminal_size() {
             //println!("{} {}", self.buffer.len(), self.buffer.len());
-            left = ((0.5*w as f32) as u32) - ((self.buffer.len() as f32 * 0.5) as u32);
+            left = ((0.5 * w as f32) as u32) - ((self.buffer.len() as f32 * 0.5) as u32);
         }
 
         self.set_cursor_pos(left, 0);
@@ -58,11 +59,11 @@ impl Display {
                 if pixel.fg_color != fg_color {
                     fg_color = pixel.fg_color;
                     self.set_fg_color(pixel.fg_color);
-                 }
+                }
                 if pixel.bg_color != bg_color {
                     bg_color = pixel.bg_color;
                     self.set_bg_color(pixel.bg_color);
-                 }
+                }
 
                 let bytes = [pixel.c as u8];
                 assert!(self.writer.borrow_mut().write_all(&bytes).is_ok());
@@ -74,7 +75,14 @@ impl Display {
         assert!(self.writer.borrow_mut().flush().is_ok());
     }
 
-    pub fn set_text<S: AsRef<str>>(&mut self, text: S, x: u32, y: u32, fg_color: Color, bg_color: Color) {
+    pub fn set_text<S: AsRef<str>>(
+        &mut self,
+        text: S,
+        x: u32,
+        y: u32,
+        fg_color: Color,
+        bg_color: Color,
+    ) {
         let row = &mut self.buffer[y as usize];
         let mut i = 0;
 
@@ -88,7 +96,11 @@ impl Display {
     }
 
     pub fn clear_screen(&self) {
-        assert!(self.writer.borrow_mut().write_all(self.esc("2J").as_bytes()).is_ok());
+        assert!(self
+            .writer
+            .borrow_mut()
+            .write_all(self.esc("2J").as_bytes())
+            .is_ok());
         assert!(self.writer.borrow_mut().flush().is_ok());
     }
 
@@ -107,7 +119,9 @@ impl Display {
         self.print(&self.esc(&format!("{};{}H", y + 1, x + 1)));
     }
 
-    fn esc(&self, text: &str) -> String { format!("{}[{}", ESC, text) }
+    fn esc(&self, text: &str) -> String {
+        format!("{}[{}", ESC, text)
+    }
 
     fn print(&self, text: &str) {
         assert!(self.writer.borrow_mut().write_all(text.as_bytes()).is_ok());
@@ -120,6 +134,4 @@ impl Display {
     fn set_bg_color(&self, color: Color) {
         self.print(&self.esc(&format!("48;5;{}m", color as i32)));
     }
-
-
 }

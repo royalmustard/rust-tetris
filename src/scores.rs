@@ -1,20 +1,17 @@
-use serde::{Serialize, Deserialize};
-use std::path::{Path};
-use std::fs::{OpenOptions};
-use std::io::{Write};
-use std::cmp::{Ord, Ordering};
 use dirs::home_dir;
-
+use serde::{Deserialize, Serialize};
+use std::cmp::{Ord, Ordering};
+use std::fs::OpenOptions;
+use std::io::Write;
+use std::path::Path;
 
 #[derive(Serialize, Deserialize, PartialEq, Eq)]
-struct Score
-{
+struct Score {
     pub name: String,
-    pub score: u32
+    pub score: u32,
 }
 
-impl Ord for Score
-{
+impl Ord for Score {
     fn cmp(&self, other: &Self) -> Ordering {
         self.score.cmp(&other.score)
     }
@@ -26,40 +23,33 @@ impl PartialOrd for Score {
     }
 }
 
-fn load_scores(path: &Path) -> Vec<Score>
-{
+fn load_scores(path: &Path) -> Vec<Score> {
     let file = OpenOptions::new()
-    .read(true)
-    .write(true)
-    .create(true)
-    .open(path)
-    .unwrap();
-    if let Ok(scores) = serde_json::from_reader(file)
-    {
-        return scores
-    }
-    else
-    {
+        .read(true)
+        .write(true)
+        .create(true)
+        .open(path)
+        .unwrap();
+    if let Ok(scores) = serde_json::from_reader(file) {
+        return scores;
+    } else {
         return Vec::new();
     }
-
 }
 
-fn write_scores(path: &Path, scores: Vec<Score>)
-{
+fn write_scores(path: &Path, scores: Vec<Score>) {
     let ser = serde_json::to_string(&scores).unwrap();
     let mut file = OpenOptions::new()
-    .write(true)
-    .truncate(true)
-    .create(true)
-    .open(path)
-    .unwrap();
+        .write(true)
+        .truncate(true)
+        .create(true)
+        .open(path)
+        .unwrap();
     file.write_all(ser.as_bytes()).unwrap();
     file.flush().unwrap();
 }
 
-fn ask_username() -> String
-{
+fn ask_username() -> String {
     println!("Name:");
     //std::io::stdout().flush().unwrap();
     let mut buffer = String::new();
@@ -68,16 +58,17 @@ fn ask_username() -> String
     return buffer;
 }
 
-pub fn manage_highscore(pscore: u32)
-{
+pub fn manage_highscore(pscore: u32) {
     let mut path = home_dir().unwrap();
     path.push(".tetris");
     let mut scores = load_scores(path.as_path());
-    if scores.iter().any(|s| pscore > s.score) || scores.is_empty()
-    {
+    if scores.iter().any(|s| pscore > s.score) || scores.is_empty() {
         println!("Your score: {}", pscore);
         let name = ask_username();
-        scores.push(Score{name: name, score: pscore});
+        scores.push(Score {
+            name: name,
+            score: pscore,
+        });
         scores.sort();
         scores.reverse();
         scores.truncate(10);
@@ -86,12 +77,12 @@ pub fn manage_highscore(pscore: u32)
     print_highscores();
 }
 
-pub fn print_highscores()
-{
+pub fn print_highscores() {
     let mut path = home_dir().unwrap();
     path.push(".tetris");
     let scores = load_scores(path.as_path());
-    print!("{}",termion::clear::BeforeCursor);
-    scores.iter().for_each(|score|
-        println!("{0}: {1}", score.name, score.score));
+    print!("{}", termion::clear::BeforeCursor);
+    scores
+        .iter()
+        .for_each(|score| println!("{0}: {1}", score.name, score.score));
 }

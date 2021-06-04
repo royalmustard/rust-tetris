@@ -18,9 +18,8 @@ pub enum Color {
     DarkYellow = 11,
 }
 
-
 #[derive(PartialEq, Copy, Clone)]
 pub enum Direction {
     Left,
-    Right
+    Right,
 }

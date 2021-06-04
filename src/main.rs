@@ -1,24 +1,23 @@
 extern crate rand;
 
-mod util;
 mod display;
-mod scores;
 mod piece;
+mod scores;
+mod util;
 
-
-use piece::*;
-use std::io::stdout;
-use std::cell::RefCell;
+use clap::clap_app;
 use display::Display;
-use std::thread;
+use piece::*;
+use std::cell::RefCell;
+use std::io::stdout;
+use std::sync::atomic::{AtomicBool, AtomicU64, Ordering};
 use std::sync::mpsc;
-use std::time::{Duration, Instant};
-use util::*;
+use std::sync::Arc;
+use std::thread;
+use std::time::{Duration};
 use termion::raw::IntoRawMode;
 use termion::screen::AlternateScreen;
-use clap::clap_app;
-use std::sync::Arc;
-use std::sync::atomic::{AtomicU64, AtomicBool, Ordering};
+use util::*;
 
 const BOARD_WIDTH: u32 = 10;
 const BOARD_HEIGHT: u32 = 20;
@@ -67,8 +66,8 @@ impl Board {
                         let c = 1 + (col * 2);
                         display.set_text(" ", c, row, color, color);
                         display.set_text(" ", c + 1, row, color, color);
-                    },
-                    None => ()
+                    }
+                    None => (),
                 }
             }
         }
@@ -88,9 +87,13 @@ impl Board {
             if !found {
                 let x = origin.x + col;
                 let y = origin.y + row;
-                if x < 0 || x >= (BOARD_WIDTH as i32) || y < 0 || y >= (BOARD_HEIGHT as i32) ||
-                    self.cells[y as usize][x as usize] != None {
-                  found = true;
+                if x < 0
+                    || x >= (BOARD_WIDTH as i32)
+                    || y < 0
+                    || y >= (BOARD_HEIGHT as i32)
+                    || self.cells[y as usize][x as usize] != None
+                {
+                    found = true;
                 }
             }
         });
@@ -123,10 +126,6 @@ impl Board {
     }
 }
 
-
-
-
-
 struct Game {
     board: Board,
     piece_bag: PieceBag,
@@ -140,7 +139,7 @@ struct Game {
     to_clear: i32,
     paused: Arc<AtomicBool>,
     cleared_last_round: u32,
-    combo_counter: u32
+    combo_counter: u32,
 }
 
 impl Game {
@@ -149,13 +148,13 @@ impl Game {
         let piece = piece_bag.pop();
 
         let mut game = Game {
-            board: Board{
-                cells: [[None; BOARD_WIDTH as usize]; BOARD_HEIGHT as usize]
+            board: Board {
+                cells: [[None; BOARD_WIDTH as usize]; BOARD_HEIGHT as usize],
             },
             piece_bag: piece_bag,
             piece: piece,
             hold: None,
-            piece_position: Point{ x: 0, y: 0 }, 
+            piece_position: Point { x: 0, y: 0 },
             score: 0,
             switched: false,
             level: 1,
@@ -163,7 +162,7 @@ impl Game {
             to_clear: 10,
             paused: Arc::new(AtomicBool::new(false)),
             cleared_last_round: 0,
-            combo_counter: 0
+            combo_counter: 0,
         };
 
         game.place_new_piece();
@@ -187,33 +186,81 @@ impl Game {
 
         // Render the level
         let left_margin = BOARD_WIDTH * 2 + 5;
-        display.set_text(format!("Level: {}", self.level), left_margin, 3, Color::Red, Color::Black);
+        display.set_text(
+            format!("Level: {}", self.level),
+            left_margin,
+            3,
+            Color::Red,
+            Color::Black,
+        );
 
         //render score
-        display.set_text(format!("Score: {}", self.score), left_margin, 5, Color::Red, Color::Black);
+        display.set_text(
+            format!("Score: {}", self.score),
+            left_margin,
+            5,
+            Color::Red,
+            Color::Black,
+        );
 
         //render combo
-        display.set_text(format!("Combo: {}", self.combo_counter), left_margin, 7, Color::Red, Color::Black);
+        display.set_text(
+            format!("Combo: {}", self.combo_counter),
+            left_margin,
+            7,
+            Color::Red,
+            Color::Black,
+        );
         // Render a ghost piece
         let x = 1 + (2 * self.piece_position.x);
         let ghost_position = self.find_dropped_position();
-        self.render_piece(display, &self.piece, Point{ x: x, y: ghost_position.y }, true);
+        self.render_piece(
+            display,
+            &self.piece,
+            Point {
+                x: x,
+                y: ghost_position.y,
+            },
+            true,
+        );
 
         // Render the currently falling piece
-        self.render_piece(display, &self.piece, Point{ x: x, y: self.piece_position.y }, false);
+        self.render_piece(
+            display,
+            &self.piece,
+            Point {
+                x: x,
+                y: self.piece_position.y,
+            },
+            false,
+        );
 
         // Render the next piece
         display.set_text("Next piece:", left_margin, 9, Color::Red, Color::Black);
         let next_piece = self.piece_bag.peek();
-        self.render_piece(display, &next_piece, Point{ x: (left_margin as i32) + 2, y: 11 }, false);
+        self.render_piece(
+            display,
+            &next_piece,
+            Point {
+                x: (left_margin as i32) + 2,
+                y: 11,
+            },
+            false,
+        );
 
         // Render hold piece
         display.set_text("Holding:", left_margin, 13, Color::Red, Color::Black);
-        if let Some(p) = &self.hold
-        {
-            self.render_piece(display, &p, Point{ x: (left_margin as i32) + 2, y: 15 }, false);
+        if let Some(p) = &self.hold {
+            self.render_piece(
+                display,
+                &p,
+                Point {
+                    x: (left_margin as i32) + 2,
+                    y: 15,
+                },
+                false,
+            );
         }
-        
     }
 
     fn render_piece(&self, display: &mut Display, piece: &Piece, origin: Point, ghost: bool) {
@@ -222,24 +269,32 @@ impl Game {
         piece.each_point(&mut |row, col| {
             let x = (origin.x + 2 * col) as u32;
             let y = (origin.y + row) as u32;
-            if ghost
-            {
-                display.set_text(" ", x, y, piece.get_shadow_color(), piece.get_shadow_color());
-                display.set_text(" ", x + 1, y, piece.get_shadow_color(), piece.get_shadow_color());
-            }
-            else
-            {
+            if ghost {
+                display.set_text(
+                    " ",
+                    x,
+                    y,
+                    piece.get_shadow_color(),
+                    piece.get_shadow_color(),
+                );
+                display.set_text(
+                    " ",
+                    x + 1,
+                    y,
+                    piece.get_shadow_color(),
+                    piece.get_shadow_color(),
+                );
+            } else {
                 display.set_text(" ", x, y, color, color);
                 display.set_text(" ", x + 1, y, color, color);
             }
-            
         });
     }
 
     /// Moves the current piece in the specified direction. Returns true if the piece could be moved and
     /// didn't collide.
     fn move_piece(&mut self, x: i32, y: i32) -> bool {
-        let new_position = Point{
+        let new_position = Point {
             x: self.piece_position.x + x,
             y: self.piece_position.y + y,
         };
@@ -257,71 +312,55 @@ impl Game {
         let mut new_piece = self.piece.clone();
         new_piece.rotate(direction);
 
-        if self.board.collision_test(&new_piece, self.piece_position) 
-        {   
+        if self.board.collision_test(&new_piece, self.piece_position) {
             let mut new_position = self.piece_position.clone();
-            if self.piece_position.x < (BOARD_WIDTH/2) as i32 //wallkick left
+            if self.piece_position.x < (BOARD_WIDTH / 2) as i32
+            //wallkick left
             {
-                
                 new_position.x += 1;
-            }
-            else
-            {
+            } else {
                 new_position.x -= 1;
             }
-            if self.board.collision_test(&new_piece, new_position)
-            {
-                if self.piece_position.x > (BOARD_WIDTH/2) as i32 //wallkick right
+            if self.board.collision_test(&new_piece, new_position) {
+                if self.piece_position.x > (BOARD_WIDTH / 2) as i32
+                //wallkick right
                 {
-                    new_position.x -=1;
-                    if self.board.collision_test(&new_piece, new_position)
-                    {
+                    new_position.x -= 1;
+                    if self.board.collision_test(&new_piece, new_position) {
                         return false;
                     }
                 }
-                
             }
-            
+
             self.piece = new_piece;
             self.piece_position = new_position;
-            return true
-            
-        }
-        else 
-        {
+            return true;
+        } else {
             self.piece = new_piece;
             true
         }
     }
 
-
     /// Switches the current piece with the held piece
     /// Places a new piece when hold was empty previously
-    fn switch_hold(&mut self) -> bool
-    {
-        if self.switched
-        {
-            return false;   
+    fn switch_hold(&mut self) -> bool {
+        if self.switched {
+            return false;
         }
-        if let Some(p) = &self.hold
-        {
-           let tmp = p.clone();
-           self.hold = Some(self.piece.clone());
-           self.piece = tmp;
-        }
-        else
-        {
+        if let Some(p) = &self.hold {
+            let tmp = p.clone();
+            self.hold = Some(self.piece.clone());
+            self.piece = tmp;
+        } else {
             self.hold = Some(self.piece.clone());
             self.piece = self.piece_bag.pop();
-            
         }
         self.switched = true;
         return self.place_new_piece();
     }
 
     ///Pauses or unpauses the game
-    fn pause(&self) -> bool
-    {
+    fn pause(&self) -> bool {
         let p = self.paused.load(Ordering::SeqCst);
         self.paused.store(!p, Ordering::SeqCst);
         true
@@ -330,7 +369,7 @@ impl Game {
     /// Positions the current piece at the top of the board. Returns true if the piece can be placed without
     /// any collisions.
     fn place_new_piece(&mut self) -> bool {
-        let origin = Point{
+        let origin = Point {
             x: ((BOARD_WIDTH - (self.piece.shape.len() as u32)) / 2) as i32,
             y: 0,
         };
@@ -346,33 +385,28 @@ impl Game {
     /// is locked and the game is set up to drop the next piece.  Returns true if the game could be advanced,
     /// false if the player has lost.
     fn advance_game(&mut self) -> bool {
-        if !self.move_piece(0, 1){
+        if !self.move_piece(0, 1) {
             self.board.lock_piece(&self.piece, self.piece_position);
             let cleared = self.board.clear_lines();
-            if self.cleared_last_round > 0 && cleared > 0
-            {
+            if self.cleared_last_round > 0 && cleared > 0 {
                 self.combo_counter += 1;
-            }
-            else
-            {
+            } else {
                 self.combo_counter = 0;
             }
-            self.score += 100*self.combo_counter;
-            match cleared
-            {
-                1 => self.score += 100*self.level,
-                2 => self.score += 300*self.level,
-                3 => self.score += 500*self.level,
-                4 => self.score += 800*self.level,
-                _ => () 
+            self.score += 100 * self.combo_counter;
+            match cleared {
+                1 => self.score += 100 * self.level,
+                2 => self.score += 300 * self.level,
+                3 => self.score += 500 * self.level,
+                4 => self.score += 800 * self.level,
+                _ => (),
             }
             self.cleared_last_round = cleared;
             self.to_clear -= cleared as i32;
-            if self.to_clear <= 0
-            {
+            if self.to_clear <= 0 {
                 self.level += 1;
                 self.to_clear = self.level as i32 * 10;
-                let new_speed = 500 - (self.level-1)*10;
+                let new_speed = 500 - (self.level - 1) * 10;
 
                 self.speed.store(new_speed as u64, Ordering::SeqCst);
             }
@@ -394,13 +428,12 @@ impl Game {
     }
 
     fn keypress(&mut self, key: Key) {
-        if self.paused.load(Ordering::SeqCst)
-        {
+        if self.paused.load(Ordering::SeqCst) {
             match key {
                 Key::Pause => self.pause(),
                 _ => false,
             };
-            return
+            return;
         }
         match key {
             Key::Left => self.move_piece(-1, 0),
@@ -416,7 +449,6 @@ impl Game {
         };
     }
 
-
     fn play(&mut self, display: &mut Display) {
         let (tx_event, rx_event) = mpsc::channel();
         // Spawn a thread which sends periodic game ticks to advance the piece
@@ -428,31 +460,33 @@ impl Game {
                 loop {
                     let dur = Duration::from_millis(arc.load(Ordering::SeqCst));
                     thread::sleep(dur);
-                    if !p.load(Ordering::SeqCst)
-                    {
-                        if let Ok(_) = tx_event.send(GameUpdate::Tick)
-                        {}
-                        else {break}
+                    if !p.load(Ordering::SeqCst) {
+                        if let Ok(_) = tx_event.send(GameUpdate::Tick) {
+                        } else {
+                            break;
+                        }
                     }
-                };
+                }
             });
         }
 
         // Spawn a thread which listens for keyboard input
-            let tx_event = tx_event.clone();
-            let (flag, control) = thread_control::make_pair();
+        let tx_event = tx_event.clone();
+        let (flag, control) = thread_control::make_pair();
 
-         let input_handle = thread::spawn(move || {
-                let stdin = &mut std::io::stdin();
+        let input_handle = thread::spawn(move || {
+            let stdin = &mut std::io::stdin();
 
-                while flag.alive() {
-                    if let Ok(_) = match get_input(stdin) {
-                        Some(k) => tx_event.send(GameUpdate::KeyPress(k)),
-                        None => Ok(())
-                    }{}
-                    else{break}
+            while flag.alive() {
+                if let Ok(_) = match get_input(stdin) {
+                    Some(k) => tx_event.send(GameUpdate::KeyPress(k)),
+                    None => Ok(()),
+                } {
+                } else {
+                    break;
                 }
-            });
+            }
+        });
 
         // Main game loop. The loop listens and responds to timer and keyboard updates received on a channel
         // as sent by the threads spawned above.
@@ -467,14 +501,19 @@ impl Game {
                         GameUpdate::KeyPress(key) => {
                             match key {
                                 Key::Char('z') | Key::CtrlC => break,
-                                k => { self.keypress(k); }
+                                k => {
+                                    self.keypress(k);
+                                }
                             };
-                        },
-                        GameUpdate::Tick => { if !self.advance_game()
-                                                {break} }
+                        }
+                        GameUpdate::Tick => {
+                            if !self.advance_game() {
+                                break;
+                            }
+                        }
                     };
-                },
-                Err(err) => panic!(err)
+                }
+                Err(err) => panic!("{}", err),
             }
         }
         control.stop();
@@ -501,23 +540,21 @@ fn get_input(stdin: &mut std::io::Stdin) -> Option<Key> {
                 Ok("\x1b") => {
                     let code = &mut [0u8; 2];
                     match stdin.read(code) {
-                        Ok(_) => {
-                            match std::str::from_utf8(code) {
-                                Ok("[A") => Some(Key::Up),
-                                Ok("[B") => Some(Key::Down),
-                                Ok("[C") => Some(Key::Right),
-                                Ok("[D") => Some(Key::Left),
-                                _ => None
-                            }
+                        Ok(_) => match std::str::from_utf8(code) {
+                            Ok("[A") => Some(Key::Up),
+                            Ok("[B") => Some(Key::Down),
+                            Ok("[C") => Some(Key::Right),
+                            Ok("[D") => Some(Key::Left),
+                            _ => None,
                         },
-                        Err(msg) => panic!(format!("could not read from standard in: {}", msg))
+                        Err(msg) => panic!("could not read from standard in: {}", msg),
                     }
-                },
+                }
                 Ok(n) => Some(Key::Char(n.chars().next().unwrap())),
-                _ => None
+                _ => None,
             }
-        },
-        Err(msg) => panic!(format!("could not read from standard in: {}", msg))
+        }
+        Err(msg) => panic!("could not read from standard in: {}", msg),
     }
 }
 
@@ -527,27 +564,30 @@ fn main() {
         (author: "royalmustard <royalmustard@memium.de>")
         (about: "Tetris (but its big stonks)")
         (@arg SCORES: -s --scores "Print highscores")
-    ).get_matches();
+    )
+    .get_matches();
 
-    if matches.is_present("SCORES")
-    {
+    if matches.is_present("SCORES") {
         scores::print_highscores();
         return;
     }
 
-
     let (send, recv) = std::sync::mpsc::channel();
-    
+
     let handle = std::thread::spawn(move || {
-        let display = &mut Display::new(BOARD_WIDTH * 2 + 100, BOARD_HEIGHT + 2, 
-            RefCell::new(Box::new(AlternateScreen::from(stdout().into_raw_mode().unwrap()))));
+        let display = &mut Display::new(
+            BOARD_WIDTH * 2 + 100,
+            BOARD_HEIGHT + 2,
+            RefCell::new(Box::new(AlternateScreen::from(
+                stdout().into_raw_mode().unwrap(),
+            ))),
+        );
         let game = &mut Game::new();
         game.play(display);
         send.send(game.score).unwrap();
     });
 
-    if let Ok(score) = recv.recv()
-    {
+    if let Ok(score) = recv.recv() {
         handle.join().unwrap();
         scores::manage_highscore(score);
     }

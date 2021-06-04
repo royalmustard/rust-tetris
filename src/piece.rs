@@ -7,9 +7,9 @@ pub struct Piece {
 
 impl Clone for Piece {
     fn clone(&self) -> Piece {
-        let mut p = Piece{
+        let mut p = Piece {
             color: self.color,
-            shape: Vec::with_capacity(self.shape.len())
+            shape: Vec::with_capacity(self.shape.len()),
         };
         for row in &self.shape {
             p.shape.push(row.clone());
@@ -20,86 +20,81 @@ impl Clone for Piece {
 
 impl Piece {
     pub fn new_o() -> Piece {
-        Piece{
+        Piece {
             color: Color::Yellow,
-            shape: vec![vec![1, 1],
-                        vec![1, 1]]
+            shape: vec![vec![1, 1], vec![1, 1]],
         }
     }
 
     pub fn new_l() -> Piece {
-        Piece{
+        Piece {
             color: Color::Orange,
-            shape: vec![vec![0, 0, 1],
-                        vec![1, 1, 1],
-                        vec![0, 0, 0]]
+            shape: vec![vec![0, 0, 1], vec![1, 1, 1], vec![0, 0, 0]],
         }
     }
 
     pub fn new_j() -> Piece {
-        Piece{
+        Piece {
             color: Color::Blue,
-            shape: vec![vec![1, 0, 0],
-                        vec![1, 1, 1],
-                        vec![0, 0, 0]]
+            shape: vec![vec![1, 0, 0], vec![1, 1, 1], vec![0, 0, 0]],
         }
     }
 
     pub fn new_t() -> Piece {
-        Piece{
+        Piece {
             color: Color::Purple,
-            shape: vec![vec![0, 1, 0],
-                        vec![1, 1, 1],
-                        vec![0, 0, 0]]
+            shape: vec![vec![0, 1, 0], vec![1, 1, 1], vec![0, 0, 0]],
         }
     }
 
     pub fn new_s() -> Piece {
-        Piece{
+        Piece {
             color: Color::Green,
-            shape: vec![vec![0, 1, 1],
-                        vec![1, 1, 0],
-                        vec![0, 0, 0]]
+            shape: vec![vec![0, 1, 1], vec![1, 1, 0], vec![0, 0, 0]],
         }
     }
 
     pub fn new_z() -> Piece {
-        Piece{
+        Piece {
             color: Color::Red,
-            shape: vec![vec![1, 1, 0],
-                        vec![0, 1, 1],
-                        vec![0, 0, 0]]
+            shape: vec![vec![1, 1, 0], vec![0, 1, 1], vec![0, 0, 0]],
         }
     }
 
     pub fn new_i() -> Piece {
-        Piece{
+        Piece {
             color: Color::Cyan,
-            shape: vec![vec![0, 0, 0, 0],
-                        vec![1, 1, 1, 1],
-                        vec![0, 0, 0, 0],
-                        vec![0, 0, 0, 0]]
+            shape: vec![
+                vec![0, 0, 0, 0],
+                vec![1, 1, 1, 1],
+                vec![0, 0, 0, 0],
+                vec![0, 0, 0, 0],
+            ],
         }
     }
 
     pub fn rotate(&mut self, direction: Direction) {
         let size = self.shape.len();
 
-        for row in 0..size/2 {
+        for row in 0..size / 2 {
             for col in row..(size - row - 1) {
                 let t = self.shape[row][col];
 
                 match direction {
                     Direction::Left => {
                         self.shape[row][col] = self.shape[col][size - row - 1];
-                        self.shape[col][size - row - 1] = self.shape[size - row - 1][size - col - 1];
-                        self.shape[size - row - 1][size - col - 1] = self.shape[size - col - 1][row];
+                        self.shape[col][size - row - 1] =
+                            self.shape[size - row - 1][size - col - 1];
+                        self.shape[size - row - 1][size - col - 1] =
+                            self.shape[size - col - 1][row];
                         self.shape[size - col - 1][row] = t;
-                    },
+                    }
                     Direction::Right => {
                         self.shape[row][col] = self.shape[size - col - 1][row];
-                        self.shape[size - col - 1][row] = self.shape[size - row - 1][size - col - 1];
-                        self.shape[size - row - 1][size - col - 1] = self.shape[col][size - row - 1];
+                        self.shape[size - col - 1][row] =
+                            self.shape[size - row - 1][size - col - 1];
+                        self.shape[size - row - 1][size - col - 1] =
+                            self.shape[col][size - row - 1];
                         self.shape[col][size - row - 1] = t;
                     }
                 }
@@ -118,10 +113,8 @@ impl Piece {
         }
     }
 
-    pub fn get_shadow_color(&self) -> Color
-    {   
-        match self.color
-        {
+    pub fn get_shadow_color(&self) -> Color {
+        match self.color {
             Color::Cyan => Color::DarkCyan,
             Color::Purple => Color::DarkPurple,
             Color::Green => Color::DarkGreen,
@@ -129,7 +122,7 @@ impl Piece {
             Color::Blue => Color::DarkBlue,
             Color::Orange => Color::DarkOrange,
             Color::Yellow => Color::DarkYellow,
-            _ => Color::Black
+            _ => Color::Black,
         }
     }
 }
@@ -141,14 +134,12 @@ impl Piece {
 /// avoid pathological cases where purely random generation provides the same piece type repeately in a row,
 /// or fails to provide a required piece for a very long time.
 pub struct PieceBag {
-    pieces: Vec<Piece>
+    pieces: Vec<Piece>,
 }
 
 impl PieceBag {
     pub fn new() -> PieceBag {
-        let mut p = PieceBag{
-            pieces: Vec::new()
-        };
+        let mut p = PieceBag { pieces: Vec::new() };
         p.fill_bag();
         p
     }
@@ -166,7 +157,7 @@ impl PieceBag {
     pub fn peek(&self) -> Piece {
         match self.pieces.first() {
             Some(p) => p.clone(),
-            None => panic!("No next piece in piece bag")
+            None => panic!("No next piece in piece bag"),
         }
     }
 
@@ -181,7 +172,7 @@ impl PieceBag {
             Piece::new_t(),
             Piece::new_s(),
             Piece::new_z(),
-            Piece::new_i()
+            Piece::new_i(),
         ];
 
         let mut rng = rand::thread_rng();
