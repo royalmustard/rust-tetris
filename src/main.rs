@@ -12,7 +12,7 @@ use std::cell::RefCell;
 use display::Display;
 use std::thread;
 use std::sync::mpsc;
-use std::time::Duration;
+use std::time::{Duration, Instant};
 use util::*;
 use termion::raw::IntoRawMode;
 use termion::screen::AlternateScreen;
@@ -138,7 +138,9 @@ struct Game {
     level: u32,
     speed: Arc<AtomicU64>,
     to_clear: i32,
-    paused: Arc<AtomicBool>
+    paused: Arc<AtomicBool>,
+    cleared_last_round: u32,
+    combo_counter: u32
 }
 
 impl Game {
@@ -160,6 +162,8 @@ impl Game {
             speed: Arc::new(AtomicU64::new(500)),
             to_clear: 10,
             paused: Arc::new(AtomicBool::new(false)),
+            cleared_last_round: 0,
+            combo_counter: 0
         };
 
         game.place_new_piece();
@@ -188,6 +192,8 @@ impl Game {
         //render score
         display.set_text(format!("Score: {}", self.score), left_margin, 5, Color::Red, Color::Black);
 
+        //render combo
+        display.set_text(format!("Combo: {}", self.combo_counter), left_margin, 7, Color::Red, Color::Black);
         // Render a ghost piece
         let x = 1 + (2 * self.piece_position.x);
         let ghost_position = self.find_dropped_position();
@@ -197,15 +203,15 @@ impl Game {
         self.render_piece(display, &self.piece, Point{ x: x, y: self.piece_position.y }, false);
 
         // Render the next piece
-        display.set_text("Next piece:", left_margin, 7, Color::Red, Color::Black);
+        display.set_text("Next piece:", left_margin, 9, Color::Red, Color::Black);
         let next_piece = self.piece_bag.peek();
-        self.render_piece(display, &next_piece, Point{ x: (left_margin as i32) + 2, y: 9 }, false);
+        self.render_piece(display, &next_piece, Point{ x: (left_margin as i32) + 2, y: 11 }, false);
 
-        //TODO Render hold piece
-        display.set_text("Holding:", left_margin, 11, Color::Red, Color::Black);
+        // Render hold piece
+        display.set_text("Holding:", left_margin, 13, Color::Red, Color::Black);
         if let Some(p) = &self.hold
         {
-            self.render_piece(display, &p, Point{ x: (left_margin as i32) + 2, y: 13 }, false);
+            self.render_piece(display, &p, Point{ x: (left_margin as i32) + 2, y: 15 }, false);
         }
         
     }
@@ -340,9 +346,18 @@ impl Game {
     /// is locked and the game is set up to drop the next piece.  Returns true if the game could be advanced,
     /// false if the player has lost.
     fn advance_game(&mut self) -> bool {
-        if !self.move_piece(0, 1) {
+        if !self.move_piece(0, 1){
             self.board.lock_piece(&self.piece, self.piece_position);
             let cleared = self.board.clear_lines();
+            if self.cleared_last_round > 0 && cleared > 0
+            {
+                self.combo_counter += 1;
+            }
+            else
+            {
+                self.combo_counter = 0;
+            }
+            self.score += 100*self.combo_counter;
             match cleared
             {
                 1 => self.score += 100*self.level,
@@ -351,6 +366,7 @@ impl Game {
                 4 => self.score += 800*self.level,
                 _ => () 
             }
+            self.cleared_last_round = cleared;
             self.to_clear -= cleared as i32;
             if self.to_clear <= 0
             {
